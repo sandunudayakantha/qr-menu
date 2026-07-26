@@ -1,0 +1,18 @@
+# Environment Variables
+.env
+.env.*
+!.env.example
+
+# Dependency Directories
+node_modules/
+
+# Production Build Output
+dist/
+dist-ssr/
+
+# Logs
+*.log
+npm-debug.log*
+
+# System Files
+.DS_Store
