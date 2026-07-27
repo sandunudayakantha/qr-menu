@@ -15,6 +15,11 @@ const ProductsPage = () => {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
 
+  // Pagination & Filter state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [searchTerm, setSearchTerm] = useState('');
+  const pageSize = 10;
+
   const [formData, setFormData] = useState({
     name: '',
     categoryId: '',
@@ -34,15 +39,25 @@ const ProductsPage = () => {
     enabled: !!activeBranch
   });
 
-  // Fetch Products
-  const { data: products = [], isLoading } = useQuery({
-    queryKey: ['ownerProducts', activeBranch?._id],
+  // Fetch Paginated Products
+  const { data: productsResponse, isLoading } = useQuery({
+    queryKey: ['ownerProducts', activeBranch?._id, currentPage, searchTerm],
     queryFn: async () => {
-      const res = await api.get('/products', { params: { branchId: activeBranch?._id } });
-      return res.data;
+      const res = await api.get('/products', {
+        params: {
+          branchId: activeBranch?._id,
+          page: currentPage,
+          limit: pageSize,
+          search: searchTerm
+        }
+      });
+      return res;
     },
     enabled: !!activeBranch
   });
+
+  const products = productsResponse?.data || [];
+  const meta = productsResponse?.meta || { total: products.length, page: 1, limit: pageSize, totalPages: 1 };
 
   const saveMutation = useMutation({
     mutationFn: (data) => {
@@ -53,7 +68,7 @@ const ProductsPage = () => {
     },
     onSuccess: () => {
       toast.success(editingProduct ? 'Product updated!' : 'Product added to catalog!');
-      queryClient.invalidateQueries(['ownerProducts', activeBranch?._id]);
+      queryClient.invalidateQueries(['ownerProducts']);
       handleClose();
     },
     onError: (err) => toast.error(err.message || 'Failed to save product.')
@@ -63,7 +78,7 @@ const ProductsPage = () => {
     mutationFn: (id) => api.delete(`/products/${id}`),
     onSuccess: () => {
       toast.success('Product deleted.');
-      queryClient.invalidateQueries(['ownerProducts', activeBranch?._id]);
+      queryClient.invalidateQueries(['ownerProducts']);
     },
     onError: (err) => toast.error(err.message || 'Failed to delete product.')
   });
@@ -96,6 +111,11 @@ const ProductsPage = () => {
   const handleClose = () => {
     setModalOpen(false);
     setEditingProduct(null);
+  };
+
+  const handleSearch = (term) => {
+    setSearchTerm(term);
+    setCurrentPage(1);
   };
 
   const columns = [
@@ -174,7 +194,19 @@ const ProductsPage = () => {
         </button>
       </div>
 
-      <DataTable columns={columns} data={products} loading={isLoading} searchPlaceholder="Search catalog..." />
+      <DataTable
+        columns={columns}
+        data={products}
+        loading={isLoading}
+        searchPlaceholder="Search catalog..."
+        onSearch={handleSearch}
+        serverPagination={true}
+        page={currentPage}
+        pageSize={pageSize}
+        totalPages={meta.totalPages}
+        total={meta.total}
+        onPageChange={setCurrentPage}
+      />
 
       <Modal isOpen={modalOpen} onClose={handleClose} title={editingProduct ? 'Edit Product' : 'Add Product to Catalog'}>
         <form

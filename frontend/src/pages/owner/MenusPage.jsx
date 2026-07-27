@@ -150,48 +150,50 @@ const MenusPage = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* View Segmented Toggle */}
-          <div className="p-1 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center gap-1 text-xs font-bold">
-            <button
-              onClick={() => setActiveTab('LIST')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'LIST'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <QueueListIcon className="w-4 h-4" />
-              Menus List
-            </button>
-            <button
-              onClick={() => setActiveTab('MATRIX')}
-              className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
-                activeTab === 'MATRIX'
-                  ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-              }`}
-            >
-              <TableCellsIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-              Price Matrix Report
-            </button>
-          </div>
-
-          {activeTab === 'LIST' && (
-            <button
-              onClick={() => handleOpen()}
-              className="flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 text-white font-bold text-sm shadow-md hover:bg-emerald-700 transition"
-            >
-              <PlusIcon className="w-5 h-5" />
-              Create Menu
-            </button>
-          )}
+        {/* View Segmented Toggle */}
+        <div className="p-1 bg-slate-200 dark:bg-slate-800 rounded-xl flex items-center gap-1 text-xs font-bold self-start sm:self-auto">
+          <button
+            onClick={() => setActiveTab('LIST')}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+              activeTab === 'LIST'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <QueueListIcon className="w-4 h-4" />
+            Menus List
+          </button>
+          <button
+            onClick={() => setActiveTab('MATRIX')}
+            className={`px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition ${
+              activeTab === 'MATRIX'
+                ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
+            }`}
+          >
+            <TableCellsIcon className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            Price Matrix Report
+          </button>
         </div>
       </div>
 
       {/* Tab Body */}
       {activeTab === 'LIST' ? (
-        <DataTable columns={columns} data={menus} loading={isLoading} searchPlaceholder="Search menus..." />
+        <DataTable
+          columns={columns}
+          data={menus}
+          loading={isLoading}
+          searchPlaceholder="Search menus..."
+          actionButton={
+            <button
+              onClick={() => handleOpen()}
+              className="flex items-center justify-center gap-2 py-2 px-4 rounded-xl bg-emerald-600 text-white font-bold text-xs shadow-md hover:bg-emerald-700 transition"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Create Menu
+            </button>
+          }
+        />
       ) : (
         <PriceMatrixView branchId={activeBranch?._id} />
       )}

@@ -7,28 +7,39 @@ const { uploadToCloudinary } = require('../config/cloudinary');
 // @route   GET /api/products
 // @access  Private (Owner)
 const getProducts = asyncHandler(async (req, res) => {
-  const { branchId, categoryId, search, available } = req.query;
+  const { branchId, categoryId, search, available, page = 1, limit = 10 } = req.query;
 
   if (!branchId) {
     return res.status(400).json({ success: false, message: 'Branch ID is required.' });
   }
+
+  const pageNum = Math.max(1, Number(page));
+  const limitNum = Math.max(1, Math.min(100, Number(limit)));
 
   const query = {
     restaurant: req.restaurantId,
     branch: branchId
   };
 
-  if (categoryId) query.category = categoryId;
+  if (categoryId && categoryId !== 'ALL') query.category = categoryId;
   if (available !== undefined) query.available = available === 'true';
   if (search) {
     query.name = { $regex: search, $options: 'i' };
   }
 
+  const totalProducts = await Product.countDocuments(query);
   const products = await Product.find(query)
     .populate('category', 'name')
-    .sort({ createdAt: -1 });
+    .sort({ createdAt: -1 })
+    .skip((pageNum - 1) * limitNum)
+    .limit(limitNum);
 
-  return sendResponse(res, 200, 'Products fetched successfully', products);
+  return sendResponse(res, 200, 'Products fetched successfully', products, {
+    total: totalProducts,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.ceil(totalProducts / limitNum) || 1
+  });
 });
 
 // @desc    Create Product

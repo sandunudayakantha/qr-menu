@@ -33,25 +33,51 @@ const getMenus = asyncHandler(async (req, res) => {
   return sendResponse(res, 200, 'Menus fetched successfully', menusWithCounts);
 });
 
-// @desc    Get Cross-Menu Price Matrix & Comparison Report
+// @desc    Get Cross-Menu Price Matrix & Comparison Report (Paginated for high scale)
 // @route   GET /api/menus/price-matrix
 // @access  Private (Owner)
 const getPriceMatrix = asyncHandler(async (req, res) => {
-  const { branchId } = req.query;
+  const { branchId, page = 1, limit = 10, search = '', categoryId = '' } = req.query;
   if (!branchId) {
     return res.status(400).json({ success: false, message: 'Branch ID is required.' });
   }
 
-  const [menus, products, categories] = await Promise.all([
+  const pageNum = Math.max(1, Number(page));
+  const limitNum = Math.max(1, Math.min(100, Number(limit)));
+
+  const productQuery = {
+    restaurant: req.restaurantId,
+    branch: branchId
+  };
+
+  if (categoryId && categoryId !== 'ALL') {
+    productQuery.category = categoryId;
+  }
+
+  if (search) {
+    productQuery.name = { $regex: search, $options: 'i' };
+  }
+
+  const [menus, totalProducts, categories] = await Promise.all([
     Menu.find({ restaurant: req.restaurantId, branch: branchId }).sort({ createdAt: 1 }),
-    Product.find({ restaurant: req.restaurantId, branch: branchId })
-      .populate('category', 'name')
-      .sort({ name: 1 }),
+    Product.countDocuments(productQuery),
     Category.find({ restaurant: req.restaurantId, branch: branchId }).sort({ sortOrder: 1 })
   ]);
 
+  const products = await Product.find(productQuery)
+    .populate('category', 'name')
+    .sort({ name: 1 })
+    .skip((pageNum - 1) * limitNum)
+    .limit(limitNum);
+
   const menuIds = menus.map(m => m._id);
-  const menuItems = await MenuItem.find({ menu: { $in: menuIds } });
+  const productIds = products.map(p => p._id);
+
+  // Fetch menu items only for the paginated products
+  const menuItems = await MenuItem.find({
+    menu: { $in: menuIds },
+    product: { $in: productIds }
+  });
 
   // Build matrix lookup map: matrix[productId][menuId] = { menuItemId, price, available }
   const matrix = {};
@@ -71,6 +97,11 @@ const getPriceMatrix = asyncHandler(async (req, res) => {
     products,
     categories,
     matrix
+  }, {
+    total: totalProducts,
+    page: pageNum,
+    limit: limitNum,
+    totalPages: Math.ceil(totalProducts / limitNum) || 1
   });
 });
 
