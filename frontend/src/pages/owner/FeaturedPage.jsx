@@ -81,6 +81,16 @@ const FeaturedPage = () => {
     onError: (err) => toast.error(err.message || 'Failed to save section.')
   });
 
+  // Direct Active/Inactive status toggle mutation
+  const toggleActiveStatusMutation = useMutation({
+    mutationFn: ({ id, isActive }) => api.put(`/featured/${id}`, { isActive }),
+    onSuccess: (_, variables) => {
+      toast.success(variables.isActive ? 'Featured banner activated!' : 'Featured banner deactivated.');
+      queryClient.invalidateQueries(['featuredSections', activeBranch?._id]);
+    },
+    onError: (err) => toast.error(err.message || 'Failed to update banner status.')
+  });
+
   const deleteMutation = useMutation({
     mutationFn: (id) => api.delete(`/featured/${id}`),
     onSuccess: () => {
@@ -207,9 +217,23 @@ const FeaturedPage = () => {
       }
     },
     {
-      header: 'Status',
+      header: 'Status (Click to Toggle)',
       accessor: 'isActive',
-      render: (row) => <Badge variant={row.isActive ? 'active' : 'inactive'}>{row.isActive ? 'Active' : 'Disabled'}</Badge>
+      render: (row) => (
+        <button
+          onClick={() => toggleActiveStatusMutation.mutate({ id: row._id, isActive: !row.isActive })}
+          disabled={toggleActiveStatusMutation.isPending}
+          className={`px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer border ${
+            row.isActive
+              ? 'bg-emerald-50 dark:bg-emerald-950/80 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-100 border-emerald-300 dark:border-emerald-800'
+              : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-700 border-slate-300 dark:border-slate-700'
+          }`}
+          title="Click to toggle Active / Inactive status on QR menu"
+        >
+          <span className={`w-2 h-2 rounded-full ${row.isActive ? 'bg-emerald-500 animate-pulse' : 'bg-slate-400'}`} />
+          {row.isActive ? 'Active' : 'Inactive'}
+        </button>
+      )
     },
     {
       header: 'Actions',
